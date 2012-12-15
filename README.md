@@ -14,7 +14,7 @@ Download and compile a simple source package from github:
         source_type "git"
         source "https://github.com/zeromq/jzmq.git"
         build_command "./autogen.sh && ./configure && ./make install"
-        creates "/usr/local/lib/something"
+        creates "/usr/local/share/java/zmq.jar"
     end
 
 and from tarball:
