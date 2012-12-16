@@ -15,7 +15,7 @@ action :build do
       action :nothing
     end.run_action(:run)
 
-    new_resource.updated_by_last_action
+    new_resource.updated_by_last_action true
 
   else
     Chef::Log.warn "Skipping build of #{new_resource.name} because #{new_resource.creates} exists"
