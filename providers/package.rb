@@ -1,5 +1,5 @@
 action :build do
-  unless File.exists? new_resource.creates
+  unless ::File.exists? new_resource.creates
     build_dir = "/opt/fewbytes/build/#{new_resource.name}"
     directory build_dir do
       mode "0644"
@@ -8,7 +8,7 @@ action :build do
     end.run_action(:create)
 
     internal_build_dir = send("get_source_from_#{new_resource.source_type}", build_dir)
-    raise RuntimeError, "Can't find internal build dir" if internal_build_dir.nil? or not File.directory?(internal_build_dir)
+    raise RuntimeError, "Can't find internal build dir" if internal_build_dir.nil? or not ::File.directory?(internal_build_dir)
 
     execute new_resource.build_command do
       cwd internal_build_dir
