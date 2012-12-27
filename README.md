@@ -19,7 +19,7 @@ Download and compile a simple source package from github:
 
 and from tarball:
 
-    source_package "redis"
+    source_package "redis" do
         source_type "tarball"
         source "http://redis.googlecode.com/files/redis-2.6.7.tar.gz"
         build_command "make install"
