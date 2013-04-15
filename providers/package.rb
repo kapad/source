@@ -24,11 +24,7 @@ action :build do
     end.run_action(:create)
   end
   source_updated = send("get_source_from_#{new_resource.source_type}", build_dir)
-  source_updated = if new_resource.checksum
-                    source_updated
-                  else
-                    true
-                  end
+  source_updated = true unless new_resource.checksum  #assume update, unless we know better
 
   if source_updated
     if current_resource.installed
@@ -68,8 +64,8 @@ def get_source_from_tarball(build_dir)
     shell_out!("tar -x#{tar_comp}f #{tar_filename}", :cwd => build_dir, :umask => "0022") if r.updated_by_last_action?
     unless ::File.symlink?(@current_build_dir) and ::File.exists?(@current_build_dir)
       tar_t = shell_out!("tar -t#{tar_comp}f #{tar_filename}", :cwd => build_dir)
-      new_dir = tar_t.stdout.lines.map{|l| l[/([^\/]+\/)/, 1]}.compact.uniq.first
-      raise RuntimeError, "No marker symlink and no new directories found, can't figure out the internal build dir" unless new_dir
+      new_dir = tar_t.stdout.lines.map{|l| l[/([^\/]+\/)/, 1]}.compact.first
+      new_dir or raise RuntimeError, "No marker symlink and no new directories found, can't figure out the internal build dir"
       Chef::Log.info "Symlinking marker for current version of #{new_resource.name} source"
       ::FileUtils.ln_sf(new_dir, @current_build_dir)
     end
