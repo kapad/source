@@ -1,4 +1,6 @@
 source :rubygems
 
 gem 'berkshelf'
-gem 'vagrant', '~> 1.0.5'
+gem 'test-kitchen', :group => :integration
+gem 'kitchen-ec2', :group => :integration
+gem 'kitchen-vagrant', :group => :integration

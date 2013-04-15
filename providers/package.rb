@@ -1,5 +1,9 @@
 include Chef::Mixin::ShellOut
 
+def whyrun_supported?
+  true
+end
+
 def load_current_resource
   creates_files =  if new_resource.creates.is_a?(Array) 
                      new_resource.creates
@@ -12,12 +16,13 @@ end
 
 action :build do
   build_dir = "/opt/fewbytes/build/#{new_resource.name}"
-  directory build_dir do
-    mode "0644"
-    recursive true
-    action :nothing
-  end.run_action(:create)
-
+  converge_by("create directory #{build_dir}") do
+    directory build_dir do
+      mode "0644"
+      recursive true
+      action :nothing
+    end.run_action(:create)
+  end
   source_updated = send("get_source_from_#{new_resource.source_type}", build_dir)
   source_updated = if new_resource.checksum
                     source_updated
@@ -29,9 +34,10 @@ action :build do
     if current_resource.installed
       Chef::Log.warn "Skipping build of #{new_resource.name} is already installed"
     else
-      Chef::Log.info "Building #{new_resource.name} using command: #{new_resource.build_command}"
-      shell_out!(new_resource.build_command, :cwd => @current_build_dir, :env => new_resource.environment)
-      new_resource.updated_by_last_action(true)
+      converge_by("build #{new_resource.name} using command: #{new_resource.build_command}") do
+        Chef::Log.info "Building #{new_resource.name} using command: #{new_resource.build_command}"
+        shell_out!(new_resource.build_command, :cwd => @current_build_dir, :env => new_resource.environment)
+      end
     end
   else
     Chef::Log.warn "Skipping build of #{new_resource.name} because sources have not changed since last build"
@@ -46,7 +52,9 @@ def get_source_from_tarball(build_dir)
     source new_resource.source
     action :nothing
   end
-  r.run_action(:create)
+  converge_by("download #{tar_filename} from #{new_resource.source}") do  
+    r.run_action(:create)
+  end
   tar_comp = case tar_filename
              when /\.(tar\.|t)gz$/
                "z"
@@ -56,16 +64,17 @@ def get_source_from_tarball(build_dir)
                ""
              end
   @current_build_dir = ::File.join(build_dir, "current")
-  shell_out!("tar -x#{tar_comp}f #{tar_filename}", :cwd => build_dir, :umask => "0022") if r.updated_by_last_action?
-  unless ::File.symlink?(@current_build_dir) and ::File.exists?(@current_build_dir)
-    tar_t = shell_out!("tar -t#{tar_comp}f #{tar_filename}", :cwd => build_dir)
-    new_dir = tar_t.stdout.lines.map{|l| l[/([^\/]+\/)/, 1]}.compact.uniq.first
-    raise RuntimeError, "No marker symlink and no new directories found, can't figure out the internal build dir" unless new_dir
-    Chef::Log.info "Symlinking marker for current version of #{new_resource.name} source"
-    ::FileUtils.ln_sf(new_dir, @current_build_dir)
+  converge_by("extract #{tar_filename}") do
+    shell_out!("tar -x#{tar_comp}f #{tar_filename}", :cwd => build_dir, :umask => "0022") if r.updated_by_last_action?
+    unless ::File.symlink?(@current_build_dir) and ::File.exists?(@current_build_dir)
+      tar_t = shell_out!("tar -t#{tar_comp}f #{tar_filename}", :cwd => build_dir)
+      new_dir = tar_t.stdout.lines.map{|l| l[/([^\/]+\/)/, 1]}.compact.uniq.first
+      raise RuntimeError, "No marker symlink and no new directories found, can't figure out the internal build dir" unless new_dir
+      Chef::Log.info "Symlinking marker for current version of #{new_resource.name} source"
+      ::FileUtils.ln_sf(new_dir, @current_build_dir)
+    end
+    raise RuntimeError, "Can't find internal build dir" unless ::File.directory?(@current_build_dir)
   end
-  raise RuntimeError, "Can't find internal build dir" unless ::File.directory?(@current_build_dir)
-
   r.updated_by_last_action?
 end
 
@@ -78,6 +87,8 @@ def get_source_from_git(build_dir)
     enable_submodules true
     action :nothing
   end
-  g.run_action(:sync)
+  converge_by("sync git from #{new_resource.source}") do
+    g.run_action(:sync)
+  end
   g.updated_by_last_action?
 end
