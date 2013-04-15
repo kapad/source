@@ -26,17 +26,23 @@ action :build do
   source_updated = send("get_source_from_#{new_resource.source_type}", build_dir)
   source_updated = true unless new_resource.checksum  #assume update, unless we know better
 
-  if source_updated
-    if current_resource.installed
-      Chef::Log.warn "Skipping build of #{new_resource.name} is already installed"
+  if new_resource.build_command
+    if source_updated
+      build
     else
-      converge_by("build #{new_resource.name} using command: #{new_resource.build_command}") do
-        Chef::Log.info "Building #{new_resource.name} using command: #{new_resource.build_command}"
-        shell_out!(new_resource.build_command, :cwd => @current_build_dir, :env => new_resource.environment)
-      end
+      Chef::Log.warn "Skipping build of #{new_resource.name} because sources have not changed since last build"
     end
+  end
+end
+
+def build
+  if current_resource.installed
+    Chef::Log.warn "Skipping build of #{new_resource.name} is already installed"
   else
-    Chef::Log.warn "Skipping build of #{new_resource.name} because sources have not changed since last build"
+    converge_by("build #{new_resource.name} using command: #{new_resource.build_command}") do
+      Chef::Log.info "Building #{new_resource.name} using command: #{new_resource.build_command}"
+      shell_out!(new_resource.build_command, :cwd => @current_build_dir, :env => new_resource.environment)
+    end
   end
 end
 
