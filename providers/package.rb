@@ -2,6 +2,7 @@ include Chef::Mixin::ShellOut
 
 # This prevents inline resources from being evaluated in the main run_context, instead we have a private run_context
 # use_inline_resources also auto-sets updated_by_last_action if *any* converge_by block was called. It's expected to become the default behaviour in Chef 12 btw.
+use_inline_resources if defined?(use_inline_resources)
 
 def whyrun_supported?
   true
