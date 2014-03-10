@@ -11,3 +11,6 @@ Gemfile.lock
 .kitchen/
 .kitchen.local.yml
 /.project
+
+*.sublime-workspace
+*.sublime-project
